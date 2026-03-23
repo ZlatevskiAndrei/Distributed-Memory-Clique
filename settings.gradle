@@ -1,0 +1,4 @@
+rootProject.name = 'distributed-memory-ids'
+include 'Client'
+include 'Controller'
+include 'lib'
