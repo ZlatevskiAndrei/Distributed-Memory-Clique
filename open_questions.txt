@@ -1,0 +1,17 @@
+1. pb archi multi client locaux (avec un controlleur) et multi clients a la distance. Pour strong consisency(mutual excl algo)
+ on a besoin de ce "N" qui est le nb de clients globaux connected. Comment achever ca? Si on a des clients locaux aussi ca veut dire
+qu'on doit gerer au local aussi le locking/unlock, probablement qu'avec RMI -> distinguer 2 cas pour read write... Peut etre je 
+overthink ptn jsp. 
+2. Comment structurer les classes et les faire communiquer. On a forcement un algo distribué, mais on peut pas ecrire tout dans un
+fichier de 2000 lignes et se perdre facilement. Est-ce que l'implementation de ControllerAccess est dans Controller ou dans un
+autre fichier et puis on les fait communiquer...? C pas evident a cause des echanges faites avec rabbitmq. 
+
+
+Bref, le plus grand pb c'est de decider les protocoles en local et a une distance. Car avec l'archi, on peut avoir des clients locaux
+a l'aide de ces abstractions...
+
+c plus compliqué par rapport a ce que je pensais
+
+imagine le cas où on a 2 write req on local avec le cas 2 write req on global
+
+

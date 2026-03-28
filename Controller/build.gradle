@@ -11,4 +11,5 @@ repositories {
 
 dependencies {
     implementation project(':lib')
+    implementation 'com.rabbitmq:amqp-client:5.16.0'
 }
