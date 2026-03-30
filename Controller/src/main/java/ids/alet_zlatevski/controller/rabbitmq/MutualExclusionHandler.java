@@ -1,4 +1,4 @@
-package ids.alet_zlatevski.controller;
+package ids.alet_zlatevski.controller.rabbitmq;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;

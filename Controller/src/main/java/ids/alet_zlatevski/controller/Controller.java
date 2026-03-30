@@ -1,7 +1,8 @@
 package ids.alet_zlatevski.controller;
 
 import ids.alet_zlatevski.ControllerAccess;
-import ids.alet_zlatevski.Memory;
+import ids.alet_zlatevski.controller.rabbitmq.MutualExclusionHandler;
+import ids.alet_zlatevski.memory.Memory;
 import ids.alet_zlatevski.operations.Operation;
 import ids.alet_zlatevski.operations.OperationStatus;
 import ids.alet_zlatevski.operations.ReadOperation;

@@ -1,6 +1,6 @@
-package ids.alet_zlatevski;
+package ids.alet_zlatevski.memory;
 
-import ids.alet_zlatevski.controller.MutualExclusionHandler;
+import ids.alet_zlatevski.controller.rabbitmq.MutualExclusionHandler;
 import ids.alet_zlatevski.operations.Operation;
 
 import java.util.ArrayList;
