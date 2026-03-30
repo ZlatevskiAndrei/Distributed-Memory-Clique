@@ -1,72 +1,38 @@
-package ids.alet_zlatevski;
+package ids.alet_zlatevski.controller;
 
-import com.rabbitmq.client.*;
-import com.rabbitmq.client.ConnectionFactory;
+import ids.alet_zlatevski.ControllerAccess;
 import ids.alet_zlatevski.operations.Operation;
 import ids.alet_zlatevski.operations.OperationStatus;
 import ids.alet_zlatevski.operations.ReadOperation;
 import ids.alet_zlatevski.operations.WriteOperation;
 
-import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeoutException;
 
-public class Controller implements ControllerAccess, Runnable {
+public class Controller implements ControllerAccess {
 
     public static final int MEMORY_SIZE = 0x400;
     protected int[] memory;
     protected final String brokerHostname;
     protected final BlockingQueue<Operation> pendingOperations;
 
-    protected final Thread internalThread;
+    protected MutualExclusionHandler mutualExclusionHandler;
 
 
     public Controller(String brokerHostname) {
         this.brokerHostname = brokerHostname;
         this.pendingOperations = new LinkedBlockingDeque<>();
-        this.internalThread = new Thread(this);
         setupMemory();
         setupNode();
         setupRegistry();
-        startInternalLoop();
-    }
-
-    private void startInternalLoop() {
-        this.internalThread.start();
-    }
-
-    @Override
-    public void run() {
-        while (true) {
-            // TODO internal loop read over rabbitMQ broadcast, and notify pendingOperation when done.
-// Operation operation = this.pendingOperations.poll(10, TimeUnit.MILLISECONDS);
-        }
     }
 
     private void setupNode() {
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(brokerHostname);
-        Channel channel;
-        Connection connection;
-        long pid = ProcessHandle.current().pid();
-        try {
-            connection = factory.newConnection();
-            channel = connection.createChannel();
-
-            channel.queueDeclare("BROADCAST", false, true, true, null);
-            channel.queueDeclare(String.valueOf(pid), false, true, true, null);
-        } catch (IOException e) {
-            System.out.println("IO Exception at " + this.brokerHostname);
-            System.out.println("Exiting!");
-            System.exit(130);
-        } catch (TimeoutException t) {
-            t.printStackTrace();
-        }
+        this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname);
     }
 
     private void setupRegistry() {
@@ -99,6 +65,7 @@ public class Controller implements ControllerAccess, Runnable {
         Operation new_op = new WriteOperation(addr, value);
         this.queueOperation(new_op);
         assert (new_op.getStatus() == OperationStatus.DONE);
+//        this.mutualExclusionHandler. TODO may use the mutualExclusionHandler instead of the blocking queue
     }
 
     @Override

@@ -23,4 +23,8 @@ public abstract class Operation {
     public void setStatus(final OperationStatus status) {
         this.status = status;
     }
+
+    public void resumeOwner() {
+        this.operationOwner.notify();
+    }
 }
