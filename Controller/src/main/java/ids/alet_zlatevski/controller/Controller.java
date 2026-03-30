@@ -1,26 +1,29 @@
 package ids.alet_zlatevski.controller;
 
 import ids.alet_zlatevski.ControllerAccess;
+import ids.alet_zlatevski.Memory;
 import ids.alet_zlatevski.operations.Operation;
 import ids.alet_zlatevski.operations.OperationStatus;
 import ids.alet_zlatevski.operations.ReadOperation;
 import ids.alet_zlatevski.operations.WriteOperation;
 
+import java.io.IOException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeoutException;
+
+import static ids.alet_zlatevski.env.Constants.MEMORY_SIZE;
+import static ids.alet_zlatevski.env.Constants.NODE_NUMBER;
 
 public class Controller implements ControllerAccess {
 
-    public static final int MEMORY_SIZE = 0x400;
-    protected int[] memory;
+    protected Memory memory;
+    protected RMIHandler rmiHandler;
+    protected MutualExclusionHandler mutualExclusionHandler;
+
     protected final String brokerHostname;
     protected final BlockingQueue<Operation> pendingOperations;
-
-    protected MutualExclusionHandler mutualExclusionHandler;
 
 
     public Controller(String brokerHostname) {
@@ -32,14 +35,18 @@ public class Controller implements ControllerAccess {
     }
 
     private void setupNode() {
-        this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname);
+        try {
+            this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname, NODE_NUMBER);
+        } catch (IOException | TimeoutException e) {
+            System.out.println("IO Exception at " + this.brokerHostname);
+            System.out.println("Exiting!");
+            System.exit(130);
+        }
     }
 
     private void setupRegistry() {
         try {
-            ControllerAccess controllerAccess_stub = (ControllerAccess) UnicastRemoteObject.exportObject(this, 0);
-            Registry registry = LocateRegistry.getRegistry();
-            registry.rebind("API", controllerAccess_stub);
+            this.rmiHandler = new RMIHandler(this);
         } catch (Exception e) {
             System.err.println("err" + e);
             e.printStackTrace();
@@ -47,7 +54,7 @@ public class Controller implements ControllerAccess {
     }
 
     private void setupMemory() {
-        this.memory = new int[MEMORY_SIZE];
+        this.memory = new Memory(MEMORY_SIZE);
     }
 
     protected synchronized void queueOperation(final Operation operation) {
@@ -61,7 +68,7 @@ public class Controller implements ControllerAccess {
     }
 
     @Override
-    public synchronized void write(long addr, int value) throws RemoteException {
+    public void write(long addr, int value) throws RemoteException {
         Operation new_op = new WriteOperation(addr, value);
         this.queueOperation(new_op);
         assert (new_op.getStatus() == OperationStatus.DONE);
@@ -69,7 +76,7 @@ public class Controller implements ControllerAccess {
     }
 
     @Override
-    public synchronized int read(long addr) throws RemoteException {
+    public int read(long addr) throws RemoteException {
         // TODO think about the read operation ? Do we need to pass though the controller main loop logic ? As the
         //  read operation isn't blocked by any action ?
         ReadOperation new_op = new ReadOperation(addr);

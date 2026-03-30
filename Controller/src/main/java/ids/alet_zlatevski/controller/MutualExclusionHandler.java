@@ -9,29 +9,40 @@ import java.util.concurrent.TimeoutException;
 
 public class MutualExclusionHandler {
 
-    protected final String brokerHostname;
+    protected final int nodeNumber;
 
-    public MutualExclusionHandler(final String brokerHostname) {
+    protected final String brokerHostname;
+    protected final Connection connection;
+    protected final Channel channel;
+
+    protected final String[] nodeIds;
+
+    public MutualExclusionHandler(final String brokerHostname, int nodeNumber) throws IOException, TimeoutException {
         this.brokerHostname = brokerHostname;
+        this.nodeNumber = nodeNumber;
+        this.nodeIds = new String[nodeNumber - 1];
 
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(brokerHostname);
-        Channel channel;
-        Connection connection;
         long pid = ProcessHandle.current().pid();
-        try {
-            connection = factory.newConnection();
-            channel = connection.createChannel();
+        this.connection = factory.newConnection();
 
-            channel.queueDeclare("BROADCAST", false, true, true, null);
-            channel.queueDeclare(String.valueOf(pid), false, true, true, null);
+        this.channel = connection.createChannel();
 
-        } catch (IOException e) {
-            System.out.println("IO Exception at " + this.brokerHostname);
-            System.out.println("Exiting!");
-            System.exit(130);
-        } catch (TimeoutException t) {
-            t.printStackTrace();
-        }
+        this.channel.queueDeclare("BROADCAST", false, true, true, null);
+        this.channel.queueDeclare(String.valueOf(pid), false, true, true, null);
+
+        this.setupCallbacks();
     }
+
+
+    protected void setupCallbacks() {
+
+    }
+
+    protected void handShakeCallback() {
+        // TODO here ALL NODE ARE CONNECTED !
+    }
+
+
 }
