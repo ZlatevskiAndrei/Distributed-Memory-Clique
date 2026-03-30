@@ -7,6 +7,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
+import static ids.alet_zlatevski.env.Constants.BROADCAST_EXCHANGE;
+
 public class MutualExclusionHandler {
 
     protected final int nodeNumber;
@@ -16,21 +18,26 @@ public class MutualExclusionHandler {
     protected final Channel channel;
 
     protected final String[] nodeIds;
+    protected final String nodeId;
 
-    public MutualExclusionHandler(final String brokerHostname, int nodeNumber) throws IOException, TimeoutException {
+    public MutualExclusionHandler(final String brokerHostname, int nodeNumber, String nodeId) throws IOException, TimeoutException {
         this.brokerHostname = brokerHostname;
         this.nodeNumber = nodeNumber;
         this.nodeIds = new String[nodeNumber - 1];
+        this.nodeId = nodeId;
 
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(brokerHostname);
-        long pid = ProcessHandle.current().pid();
         this.connection = factory.newConnection();
 
         this.channel = connection.createChannel();
+        this.channel.exchangeDeclare(BROADCAST_EXCHANGE, "fanout");
+
 
         this.channel.queueDeclare("BROADCAST", false, true, true, null);
-        this.channel.queueDeclare(String.valueOf(pid), false, true, true, null);
+        this.channel.queueBind("BROADCAST",BROADCAST_EXCHANGE, "");
+
+        this.channel.queueDeclare(nodeId, false, true, true, null);
 
         this.setupCallbacks();
     }
@@ -40,7 +47,15 @@ public class MutualExclusionHandler {
 
     }
 
-    protected void handShakeCallback() {
+    protected void initiateMutualExlusion() throws IOException {
+        Packet packet = new Packet(PacketType.LOCK);
+        packet.setData(nodeId);
+
+        this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
+        //here we call a basic consume to the receiving queue.
+    }
+
+    protected void handShakeCallback() { //should put this method maybe in Controller, makes more sense
         // TODO here ALL NODE ARE CONNECTED !
     }
 

@@ -22,14 +22,15 @@ public class Controller implements ControllerAccess {
     protected Memory memory;
     protected RMIHandler rmiHandler;
     protected MutualExclusionHandler mutualExclusionHandler;
-
+    protected final String nodeId;
     protected final String brokerHostname;
     protected final BlockingQueue<Operation> pendingOperations;
 
 
-    public Controller(String brokerHostname) {
+    public Controller(String brokerHostname, String nodeId) {
         this.brokerHostname = brokerHostname;
         this.pendingOperations = new LinkedBlockingDeque<>();
+        this.nodeId = nodeId;
         setupMemory();
         setupNode();
         setupRegistry();
@@ -37,7 +38,7 @@ public class Controller implements ControllerAccess {
 
     private void setupNode() {
         try {
-            this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname, NODE_NUMBER);
+            this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname, NODE_NUMBER, nodeId);
         } catch (IOException | TimeoutException e) {
             System.out.println("IO Exception at " + this.brokerHostname);
             System.out.println("Exiting!");
@@ -55,7 +56,7 @@ public class Controller implements ControllerAccess {
     }
 
     private void setupMemory() {
-        this.memory = new Memory(MEMORY_SIZE);
+        this.memory = new Memory(MEMORY_SIZE, mutualExclusionHandler);
     }
 
     protected synchronized void queueOperation(final Operation operation) {

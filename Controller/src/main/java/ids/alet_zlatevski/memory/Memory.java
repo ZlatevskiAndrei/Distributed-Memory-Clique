@@ -1,9 +1,9 @@
 package ids.alet_zlatevski.memory;
 
 import ids.alet_zlatevski.controller.rabbitmq.MutualExclusionHandler;
-import ids.alet_zlatevski.operations.Operation;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Memory {
 
@@ -12,12 +12,13 @@ public class Memory {
 
     protected MutualExclusionHandler mutualExclusionHandler; // TODO may be usefull ?
 
-    protected ArrayList<Operation> operations;
-
+     protected final Map<AddressStatus, Long> addressStatuses;
     public Memory(final int size, final MutualExclusionHandler mutualExclusionHandler) {
         this.size = size;
         this.memory = new int[size];
         this.mutualExclusionHandler = mutualExclusionHandler;
+        this.addressStatuses = new HashMap<>();
+        for(long i: memory) { this.addressStatuses.put(AddressStatus.FREE, i); }
     }
 
     public void read(long addr) {

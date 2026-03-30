@@ -12,6 +12,7 @@ a l'aide de ces abstractions...
 
 c plus compliqué par rapport a ce que je pensais
 
-imagine le cas où on a 2 write req on local avec le cas 2 write req on global
+imagine le cas où on a 2 write req on local avec le cas 2 write req on global // fixed car memoire dans le LMM.
+
 
 

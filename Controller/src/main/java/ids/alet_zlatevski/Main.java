@@ -7,7 +7,7 @@ import ids.alet_zlatevski.controller.Controller;
 public class Main {
     public static void main(String[] args) {
         String brokerHost = (args.length > 0) ? args[0] : "localhost";
-        Controller controller = new Controller(brokerHost);
+        Controller controller = new Controller(brokerHost, "0");
         IO.println("Controller started with broker: " + brokerHost);
     }
 }
