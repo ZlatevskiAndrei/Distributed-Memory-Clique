@@ -36,7 +36,7 @@ public class MutualExclusionHandler {
 
 
         this.channel.queueDeclare("BROADCAST", false, false, true, null);
-        this.channel.queueBind("BROADCAST", BROADCAST_EXCHANGE, "");
+        this.channel.queueBind("BROADCAST", BROADCAST_EXCHANGE, ""); // we shouldn't use the same queue name for all nodes
 
         this.channel.queueDeclare(nodeId, false, true, true, null);
 
