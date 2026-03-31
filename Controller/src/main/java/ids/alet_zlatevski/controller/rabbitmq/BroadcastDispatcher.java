@@ -8,6 +8,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 import java.io.IOException;
 import java.util.Objects;
 
+import static ids.alet_zlatevski.controller.rabbitmq.MutualExclusionHandler.getBroadcastChannelForId;
 import static ids.alet_zlatevski.env.Constants.BROADCAST_EXCHANGE;
 
 public class BroadcastDispatcher implements Consumer {
@@ -47,25 +48,30 @@ public class BroadcastDispatcher implements Consumer {
     @Override
     public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
         Packet packet = new Packet(body);
+
         switch (packet.getType()) {
             case HANDSHAKE:
+                // the received nodeId
                 String newNodeId = packet.getString();
-                if (Objects.equals(this.owner.getNodeId(), newNodeId)) { // we don't send ack to ourself
+
+                // we don't send ack to ourself or if the node was already added.
+                if (Objects.equals(this.owner.getNodeId(), newNodeId) || this.owner.nodeIds.contains(newNodeId)) {
                     return;
                 }
 
+                // we send on the other broadcast channel our own id
                 Packet ownIdPacket = new Packet(PacketType.HANDSHAKE);
                 ownIdPacket.setData(this.owner.getNodeId());
-                // we send on the other broadcast channel our own id
-                this.owner.channel.basicPublish("BROADCAST", newNodeId, null, ownIdPacket.toByteArray());
+                this.owner.channel.basicPublish("", getBroadcastChannelForId(newNodeId), null, ownIdPacket.toByteArray());
 
-                assert (!this.owner.nodeIds.contains(newNodeId));
                 this.owner.nodeIds.add(newNodeId);
-                assert (this.owner.nodeIds.size() <= this.owner.nodeNumber);
-                System.out.println("Current value : " + this.owner.nodeIds.toString());
-                if (this.owner.nodeIds.size() == this.owner.nodeNumber) {
+                IO.println("Current saved ids : " + this.owner.nodeIds);
+
+                // execute the callback if needed.
+                if (this.owner.nodeIds.size() == this.owner.nodeNumber - 1) {
                     this.owner.handShakeCallback();
                 }
+
                 break;
             default:
                 break;

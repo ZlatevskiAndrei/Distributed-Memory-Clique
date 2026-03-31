@@ -21,11 +21,14 @@ public class MutualExclusionHandler {
     protected final ArrayList<String> nodeIds;
     protected final String nodeId;
 
+    protected final String broadcastChannel;
+
     public MutualExclusionHandler(final String brokerHostname, int nodeNumber, String nodeId) throws IOException, TimeoutException {
         this.brokerHostname = brokerHostname;
         this.nodeNumber = nodeNumber;
         this.nodeIds = new ArrayList<>();
         this.nodeId = nodeId;
+        this.broadcastChannel = getBroadcastChannelForId(this.nodeId);
 
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(brokerHostname);
@@ -34,9 +37,8 @@ public class MutualExclusionHandler {
         this.channel = connection.createChannel();
         this.channel.exchangeDeclare(BROADCAST_EXCHANGE, "fanout");
 
-
-        this.channel.queueDeclare("BROADCAST", false, false, true, null);
-        this.channel.queueBind("BROADCAST", BROADCAST_EXCHANGE, ""); // we shouldn't use the same queue name for all nodes
+        this.channel.queueDeclare(this.broadcastChannel, false, true, true, null);
+        this.channel.queueBind(this.broadcastChannel, BROADCAST_EXCHANGE, "");
 
         this.channel.queueDeclare(nodeId, false, true, true, null);
 
@@ -46,7 +48,8 @@ public class MutualExclusionHandler {
 
 
     protected void setupCallbacks() throws IOException {
-        this.channel.basicConsume("BROADCAST", new BroadcastDispatcher(this));
+        // setup callback on the broadcast queue of the current controller
+        this.channel.basicConsume(this.broadcastChannel, new BroadcastDispatcher(this));
     }
 
     protected void initiateMutualExlusion() throws IOException {
@@ -58,9 +61,14 @@ public class MutualExclusionHandler {
 
     protected void handShakeCallback() { //should put this method maybe in Controller, makes more sense
         // TODO here ALL NODE ARE CONNECTED !
+        System.out.println("ALL NODE ARE CONNECTED TO EACH OTHERS");
     }
 
     public String getNodeId() {
         return nodeId;
+    }
+
+    public static String getBroadcastChannelForId(String nodeId) {
+        return "BROADCAST_" + nodeId;
     }
 }
