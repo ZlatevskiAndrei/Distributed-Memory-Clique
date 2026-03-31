@@ -35,17 +35,18 @@ public class MutualExclusionHandler {
         this.channel.exchangeDeclare(BROADCAST_EXCHANGE, "fanout");
 
 
-        this.channel.queueDeclare("BROADCAST", false, true, true, null);
+        this.channel.queueDeclare("BROADCAST", false, false, true, null);
         this.channel.queueBind("BROADCAST", BROADCAST_EXCHANGE, "");
 
         this.channel.queueDeclare(nodeId, false, true, true, null);
 
         this.setupCallbacks();
+        this.initiateMutualExlusion();
     }
 
 
-    protected void setupCallbacks() {
-
+    protected void setupCallbacks() throws IOException {
+        this.channel.basicConsume("BROADCAST", new BroadcastDispatcher(this));
     }
 
     protected void initiateMutualExlusion() throws IOException {
@@ -53,8 +54,6 @@ public class MutualExclusionHandler {
         packet.setData(nodeId);
 
         this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
-        this.channel.basicConsume("BROADCAST", new BroadcastDispatcher(this));
-        //here we call a basic consume to the receiving queue.
     }
 
     protected void handShakeCallback() { //should put this method maybe in Controller, makes more sense

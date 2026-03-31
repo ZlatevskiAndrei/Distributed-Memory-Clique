@@ -63,6 +63,9 @@ public class BroadcastDispatcher implements Consumer {
                 this.owner.nodeIds.add(newNodeId);
                 assert (this.owner.nodeIds.size() <= this.owner.nodeNumber);
                 System.out.println("Current value : " + this.owner.nodeIds.toString());
+                if (this.owner.nodeIds.size() == this.owner.nodeNumber) {
+                    this.owner.handShakeCallback();
+                }
                 break;
             default:
                 break;

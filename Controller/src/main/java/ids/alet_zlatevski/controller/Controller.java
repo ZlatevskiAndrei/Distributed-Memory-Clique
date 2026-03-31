@@ -40,6 +40,7 @@ public class Controller implements ControllerAccess {
         try {
             this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname, NODE_NUMBER, nodeId);
         } catch (IOException | TimeoutException e) {
+            e.printStackTrace();
             System.out.println("IO Exception at " + this.brokerHostname);
             System.out.println("Exiting!");
             System.exit(130);
