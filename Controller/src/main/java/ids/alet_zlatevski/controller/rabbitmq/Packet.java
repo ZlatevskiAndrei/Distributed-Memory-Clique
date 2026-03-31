@@ -31,6 +31,10 @@ public class Packet {
         return new String(this.data, StandardCharsets.UTF_8);
     }
 
+    public PacketType getType() {
+        return type;
+    }
+
     public byte[] toByteArray() {
         ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES + data.length);
 

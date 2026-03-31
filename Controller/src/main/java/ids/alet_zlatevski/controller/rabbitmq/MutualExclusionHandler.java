@@ -5,6 +5,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
 import static ids.alet_zlatevski.env.Constants.BROADCAST_EXCHANGE;
@@ -17,13 +18,13 @@ public class MutualExclusionHandler {
     protected final Connection connection;
     protected final Channel channel;
 
-    protected final String[] nodeIds;
+    protected final ArrayList<String> nodeIds;
     protected final String nodeId;
 
     public MutualExclusionHandler(final String brokerHostname, int nodeNumber, String nodeId) throws IOException, TimeoutException {
         this.brokerHostname = brokerHostname;
         this.nodeNumber = nodeNumber;
-        this.nodeIds = new String[nodeNumber - 1];
+        this.nodeIds = new ArrayList<>();
         this.nodeId = nodeId;
 
         ConnectionFactory factory = new ConnectionFactory();
@@ -35,7 +36,7 @@ public class MutualExclusionHandler {
 
 
         this.channel.queueDeclare("BROADCAST", false, true, true, null);
-        this.channel.queueBind("BROADCAST",BROADCAST_EXCHANGE, "");
+        this.channel.queueBind("BROADCAST", BROADCAST_EXCHANGE, "");
 
         this.channel.queueDeclare(nodeId, false, true, true, null);
 
@@ -48,10 +49,11 @@ public class MutualExclusionHandler {
     }
 
     protected void initiateMutualExlusion() throws IOException {
-        Packet packet = new Packet(PacketType.LOCK);
+        Packet packet = new Packet(PacketType.HANDSHAKE);
         packet.setData(nodeId);
 
         this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
+        this.channel.basicConsume("BROADCAST", new BroadcastDispatcher(this));
         //here we call a basic consume to the receiving queue.
     }
 
@@ -59,5 +61,7 @@ public class MutualExclusionHandler {
         // TODO here ALL NODE ARE CONNECTED !
     }
 
-
+    public String getNodeId() {
+        return nodeId;
+    }
 }
