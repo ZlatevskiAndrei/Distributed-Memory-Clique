@@ -5,11 +5,14 @@ import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 
+import ids.alet_zlatevski.IO;
+import ids.alet_zlatevski.controller.rabbitmq.Packet;
+import ids.alet_zlatevski.controller.rabbitmq.PacketType;
+
 import java.io.IOException;
 import java.util.Objects;
 
 import static ids.alet_zlatevski.controller.rabbitmq.MutualExclusionHandler.getBroadcastChannelForId;
-import static ids.alet_zlatevski.env.Constants.BROADCAST_EXCHANGE;
 
 public class BroadcastDispatcher implements Consumer {
 
