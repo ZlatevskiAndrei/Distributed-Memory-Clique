@@ -44,5 +44,12 @@ public class Packet {
         return buffer.array();
     }
 
+    public String[] parseTwoStringData(String input) {
+        int commaIndex = input.indexOf(',');
+        String first = input.substring(0, commaIndex).trim();
+        String second = input.substring(commaIndex + 1).trim();
+        return new String[]{first, second};
+    }
+
 
 }

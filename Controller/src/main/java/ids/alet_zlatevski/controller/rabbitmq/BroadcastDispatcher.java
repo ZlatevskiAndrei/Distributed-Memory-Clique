@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.Objects;
 
 import static ids.alet_zlatevski.controller.rabbitmq.MutualExclusionHandler.getBroadcastChannelForId;
-import static ids.alet_zlatevski.env.Constants.BROADCAST_EXCHANGE;
 
 public class BroadcastDispatcher implements Consumer {
 
@@ -69,9 +68,8 @@ public class BroadcastDispatcher implements Consumer {
 
                 // execute the callback if needed.
                 if (this.owner.nodeIds.size() == this.owner.nodeNumber - 1) {
-                    this.owner.handShakeCallback();
+                    this.owner.handshakeFinished();
                 }
-
                 break;
             default:
                 break;
