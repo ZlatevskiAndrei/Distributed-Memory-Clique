@@ -5,7 +5,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface ControllerAccess extends Remote {
-    void write(long addr, int value) throws IOException, InterruptedException;
-    int read(long addr) throws RemoteException;
+    void write(int addr, long value) throws IOException, InterruptedException;
+    long read(int addr) throws RemoteException, InterruptedException;
     int size() throws RemoteException;
 }

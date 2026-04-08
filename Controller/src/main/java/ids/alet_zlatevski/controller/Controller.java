@@ -2,6 +2,7 @@ package ids.alet_zlatevski.controller;
 
 import ids.alet_zlatevski.ControllerAccess;
 import ids.alet_zlatevski.controller.rabbitmq.MutualExclusionHandler;
+import ids.alet_zlatevski.memory.AddressStatus;
 import ids.alet_zlatevski.memory.Memory;
 
 
@@ -57,27 +58,37 @@ public class Controller implements ControllerAccess {
     }
 
     private void setupMemory() {
-        this.memory = new Memory(MEMORY_SIZE, mutualExclusionHandler);
+        this.memory = new Memory(MEMORY_SIZE);
     }
 
 
     @Override
-    public void write(long addr, int value) throws IOException, InterruptedException {
+    public void write(int addr, long value) throws InterruptedException, IOException {
         this.mutualExclusionHandler.initiateWantLock();
-        //now we have the lock and the semaphore is released, we modify the memory values and the status of the addresses, as we may have local clients trying to read
-        this.mutualExclusionHandler.initiateUnlock(); //we let the other nodes grab the lock
+        synchronized (memory) {
+            memory.setAddressStatus(addr, AddressStatus.OCCUPIED);
+            memory.setValue(addr, value);
+
+            Thread.sleep(400); //for simulation purposes, if multiple local clients want to access this addr
+
+            memory.setAddressStatus(addr, AddressStatus.FREE);
+            memory.notifyAll(); // notify threads waiting on memory
+        }
+        this.mutualExclusionHandler.initiateUnlock();
     }
 
     @Override
-    public int read(long addr) throws RemoteException {
-        // TODO think about the read operation ? Do we need to pass though the controller main loop logic ? As the
-        //  read operation isn't blocked by any action ?
-        return 0;
+    public long read(int addr) throws InterruptedException {
+        synchronized (memory) {
+            while (memory.getAddressStatuses().get(addr) == AddressStatus.OCCUPIED) {
+                memory.wait();
+            }
+            return memory.getMemorySnapshot()[addr];
+        }
     }
 
     @Override
     public int size() throws RemoteException {
         return MEMORY_SIZE;
     }
-
 }

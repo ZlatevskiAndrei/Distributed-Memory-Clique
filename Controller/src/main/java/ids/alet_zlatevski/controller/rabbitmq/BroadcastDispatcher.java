@@ -6,8 +6,7 @@ import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 
 import ids.alet_zlatevski.IO;
-import ids.alet_zlatevski.controller.rabbitmq.Packet;
-import ids.alet_zlatevski.controller.rabbitmq.PacketType;
+
 
 import java.io.IOException;
 import java.util.Objects;
@@ -34,7 +33,7 @@ public class BroadcastDispatcher implements Consumer {
     }
 
     @Override
-    public void handleCancel(String consumerTag) throws IOException {
+    public void handleCancel(String consumerTag)  {
 
     }
 
@@ -52,31 +51,26 @@ public class BroadcastDispatcher implements Consumer {
     public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
         Packet packet = new Packet(body);
 
-        switch (packet.getType()) {
-            case HANDSHAKE:
-                // the received nodeId
-                String newNodeId = packet.getString();
+        if (Objects.requireNonNull(packet.getType()) == PacketType.HANDSHAKE) {// the received nodeId
+            String newNodeId = packet.getString();
 
-                // we don't send ack to ourself or if the node was already added.
-                if (Objects.equals(this.owner.getNodeId(), newNodeId) || this.owner.nodeIds.contains(newNodeId)) {
-                    return;
-                }
+            // we don't send ack to ourselves or if the node was already added.
+            if (Objects.equals(this.owner.getNodeId(), newNodeId) || this.owner.nodeIds.contains(newNodeId)) {
+                return;
+            }
 
-                // we send on the other broadcast channel our own id
-                Packet ownIdPacket = new Packet(PacketType.HANDSHAKE);
-                ownIdPacket.setData(this.owner.getNodeId());
-                this.owner.channel.basicPublish("", getBroadcastChannelForId(newNodeId), null, ownIdPacket.toByteArray());
+            // we send on the other broadcast channel our own id
+            Packet ownIdPacket = new Packet(PacketType.HANDSHAKE);
+            ownIdPacket.setData(this.owner.getNodeId());
+            this.owner.channel.basicPublish("", getBroadcastChannelForId(newNodeId), null, ownIdPacket.toByteArray());
 
-                this.owner.nodeIds.add(newNodeId);
-                IO.println("Current saved ids : " + this.owner.nodeIds);
+            this.owner.nodeIds.add(newNodeId);
+            IO.println("Current saved ids : " + this.owner.nodeIds);
 
-                // execute the callback if needed.
-                if (this.owner.nodeIds.size() == this.owner.nodeNumber - 1) {
-                    this.owner.handshakeFinished();
-                }
-                break;
-            default:
-                break;
+            // execute the callback if needed.
+            if (this.owner.nodeIds.size() == this.owner.nodeNumber - 1) {
+                this.owner.handshakeFinished();
+            }
         }
     }
 }

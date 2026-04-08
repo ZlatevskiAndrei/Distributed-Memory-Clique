@@ -105,16 +105,16 @@ public class MutualExclusionHandler {
     }
 
     public void initiateUnlock() throws IOException { // rule 6
-        for(Integer IDs: delayed.keySet()) {
-            if(delayed.get(IDs)) {
+        for(Integer IDs: this.delayed.keySet()) {
+            if(this.delayed.get(IDs)) {
                 Packet ongoing = new Packet(PacketType.ACK);
-                ongoing.setData(nodeId + "," + LC);
+                ongoing.setData(this.nodeId + "," + this.LC);
                 this.channel.basicPublish("", String.valueOf(IDs), null, ongoing.toByteArray());
-                delayed.replace(IDs, false);
+                this.delayed.replace(IDs, false);
             }
         }
-        asking = false;
-        nb_perm = 0;
+        this.asking = false;
+        this.nb_perm = 0;
     }
 
     public String getNodeId() {
