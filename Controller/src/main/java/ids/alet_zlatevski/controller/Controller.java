@@ -21,8 +21,8 @@ public class Controller implements ControllerAccess {
     protected MutualExclusionHandler mutualExclusionHandler;
     protected final String nodeId;
     protected final String brokerHostname;
-    protected final Semaphore handshakeSemaphore;
-    protected final Semaphore lockSemaphore;
+    protected final Semaphore handshakeSemaphore; // TODO should be stored inside the MutualExclusionHandler. Out of scope variable.
+    protected final Semaphore lockSemaphore; // TODO should be stored inside the MutualExclusionHandler. Out of scope variable.
 
 
     public Controller(String brokerHostname, String nodeId) {
@@ -65,8 +65,10 @@ public class Controller implements ControllerAccess {
     @Override
     public void write(int addr, long value) throws InterruptedException, IOException {
         this.mutualExclusionHandler.initiateWantLock();
+        // TODO Synchronized block should be inside the Memory Object.
+        //  Also here the synchronized block is useless as the critical section should be already given by the mutualExclusionHandler.initiateWantLock();.
         synchronized (memory) {
-            memory.setAddressStatus(addr, AddressStatus.OCCUPIED);
+            memory.setAddressStatus(addr, AddressStatus.BUSY);
             memory.setValue(addr, value);
 
             Thread.sleep(400); //for simulation purposes, if multiple local clients want to access this addr
@@ -79,8 +81,14 @@ public class Controller implements ControllerAccess {
 
     @Override
     public long read(int addr) throws InterruptedException {
+        // TODO Synchronized block should be inside the Memory Object.
+        //  Also the synchronization block is useless, more of that it
+        //  goes against our policy to lock only some part of the memory.
+        //  The sync part is done but the while loop checking for BUSY.
         synchronized (memory) {
-            while (memory.getAddressStatuses().get(addr) == AddressStatus.OCCUPIED) {
+            // TODO careful here the AddressStatuse for every addr is not defined. We also may
+            //  add a sync on the AddressStatuses access to follow our policy.
+            while (memory.getAddressStatuses().get(addr) != null && memory.getAddressStatuses().get(addr) == AddressStatus.BUSY) {
                 memory.wait();
             }
             return memory.getMemorySnapshot()[addr];

@@ -88,6 +88,10 @@ public class MutualExclusionHandler {
     }
 
     public void initiateWantLock() throws IOException, InterruptedException {
+        // TODO I see here an issue if we receive many initiateWanLock() requests that is possible for now.
+        //  We may send 2 time the LOCK packet which is not supported as
+        //  I know inside the mutual exclusion protocol.
+        //  So we may add a "synchronized" into the method type.
         Packet packet = new Packet(PacketType.LOCK);
         packet.setData(nodeId + "," + LD);
 
