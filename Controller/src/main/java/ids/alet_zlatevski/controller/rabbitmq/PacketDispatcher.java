@@ -81,7 +81,7 @@ public class PacketDispatcher implements Consumer {
 
                     owner.LC = Math.max(owner.LC, distant.LD()) + 1;
 
-                    Packet ongoing = new Packet(PacketType.ACK)
+                    Packet ongoing = new Packet(PacketType.ACK_LOCK)
                             .setData(owner.nodeId, owner.LC);
 
                     this.owner.channel.basicPublish("", distant.ID(), null, ongoing.toByteArray());
@@ -94,14 +94,14 @@ public class PacketDispatcher implements Consumer {
                 } else { // rule 4
                     owner.LC = Math.max(owner.LC, distant.LD()) + 1;
 
-                    Packet ongoing = new Packet(PacketType.ACK)
+                    Packet ongoing = new Packet(PacketType.ACK_LOCK)
                             .setData(owner.nodeId, owner.LC);
 
                     this.owner.channel.basicPublish("", distant.ID(), null, ongoing.toByteArray());
                 }
             }
 
-            case ACK -> { // rule 5
+            case ACK_LOCK -> { // rule 5
                 Packet.IDAndLC distant = packet.getNodeIdAndLD();
 
                 owner.LC = Math.max(owner.LC, distant.LD()) + 1;
@@ -109,6 +109,24 @@ public class PacketDispatcher implements Consumer {
 
                 if (owner.nb_perm == NODE_NUMBER - 1) {
                     owner.lockGranted(); // we expect perms from everyone except us
+                }
+            }
+
+            case GLOBAL_UPDATE -> {
+                Packet.ID_ADDR_VAL distant = packet.getIdAddrVal();
+                try {
+                    owner.notifyMemoryUpdate(distant.addr(), distant.val());
+                    Packet newPacket = new Packet(PacketType.ACK_GLOBAL_UPDATE);
+                    this.owner.channel.basicPublish("", distant.ID(), null, newPacket.toByteArray());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            case ACK_GLOBAL_UPDATE -> {
+                owner.global_update_acks += 1;
+                if(owner.global_update_acks == NODE_NUMBER - 1) {
+                    owner.globalUpdateFinished();
                 }
             }
 

@@ -33,7 +33,7 @@ public class Controller implements ControllerAccess {
 
     private void setupNode() {
         try {
-            this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname, nodeId);
+            this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname, nodeId, this);
         } catch (IOException | TimeoutException e) {
             e.printStackTrace();
             System.out.println("IO Exception at " + this.brokerHostname);
@@ -57,12 +57,15 @@ public class Controller implements ControllerAccess {
         this.memory = new Memory(MEMORY_SIZE);
     }
 
+    public void updateBroadcastChanges(int addr, long value) throws InterruptedException {
+        this.memory.write(addr, value);
+    }
 
     @Override
     public void write(int addr, long value) throws InterruptedException, IOException {
         this.mutualExclusionHandler.initiateWantLock();
         this.memory.write(addr, value);
-        // TODO broadcast memory changes. Find a way to ack that every nodes got the changes before unlocking the memory section.
+        this.mutualExclusionHandler.initiateGlobalUpdateProcedure(addr, value);
         this.mutualExclusionHandler.initiateUnlock();
     }
 

@@ -47,6 +47,12 @@ public class Packet {
         return new IDAndLC(first, Integer.parseInt(second));
     }
 
+    public ID_ADDR_VAL getIdAddrVal() {
+        String[] parts = this.getString().split(",");
+
+        return new ID_ADDR_VAL(parts[0].trim(), Integer.parseInt(parts[1].trim()), Long.parseLong(parts[2].trim()));
+    }
+
 
     public PacketType getType() {
         return type;
@@ -64,5 +70,6 @@ public class Packet {
 
     public record IDAndLC(String ID, int LD) {
     }
-
+    public record ID_ADDR_VAL(String ID, int addr, long val) {
+    }
 }
