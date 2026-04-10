@@ -1,9 +1,18 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 group = 'org.example'
 version = '1.0-SNAPSHOT'
+
+application {
+    mainClass = "ids.alet_zlatevski.Client"
+}
+
+run {
+    standardInput = System.in
+}
 
 repositories {
     mavenCentral()
@@ -12,4 +21,5 @@ repositories {
 dependencies {
     implementation project(':lib')
     implementation 'com.rabbitmq:amqp-client:5.16.0'
+    implementation 'org.slf4j:slf4j-simple:1.7.36'
 }

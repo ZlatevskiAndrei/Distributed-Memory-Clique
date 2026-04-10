@@ -115,7 +115,7 @@ public class PacketDispatcher implements Consumer {
             case GLOBAL_UPDATE -> {
                 Packet.ID_ADDR_VAL distant = packet.getIdAddrVal();
                 try {
-                    owner.notifyMemoryUpdate(distant.addr(), distant.val());
+                    owner.distantMemoryUpdate(distant.addr(), distant.val());
                     Packet newPacket = new Packet(PacketType.ACK_GLOBAL_UPDATE);
                     this.owner.channel.basicPublish("", distant.ID(), null, newPacket.toByteArray());
                 } catch (InterruptedException e) {

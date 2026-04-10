@@ -32,7 +32,7 @@ public class MutualExclusionHandler {
     protected int nb_perm;
     protected int global_update_acks;
     protected final Map<Integer, Boolean> delayed;
-    protected final Controller controller; //tightly coupled anyways
+    protected final Controller controller; //tightly coupled anyway
 
 
     public MutualExclusionHandler(final String brokerHostname, String nodeId, Controller controller) throws IOException, TimeoutException, InterruptedException {
@@ -61,7 +61,8 @@ public class MutualExclusionHandler {
         this.channel.queueBind(this.nodeId, BROADCAST_EXCHANGE, "");
 
         this.setupCallback();
-        this.initiateHandshakeProcedure();
+        this.initiateHandshakeProcedure(); //TODO We have to decide what to do in case of only 1 node, we may have local clients that could want to work
+        // TODO What we could do is set up a timer, because the node expects a HANDSHAKE return, if no one comes until X time, we just let the node work by himself
     }
 
 
@@ -72,7 +73,7 @@ public class MutualExclusionHandler {
     protected void initiateHandshakeProcedure() throws IOException {
         Packet packet = new Packet(PacketType.HANDSHAKE);
         packet.setData(nodeId);
-
+        System.out.println("Initiating handshake for ID " + this.nodeId);
         this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
     }
 
@@ -81,29 +82,33 @@ public class MutualExclusionHandler {
         String data = this.nodeId + "," + addr + "," + val;
         packet.setData(data);
         this.global_update_acks = 0;
-
+        System.out.println("Initiating update procedure for " + this.nodeId);
         this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
         this.globalUpdateSemaphore.acquire();
     }
 
-    protected void notifyMemoryUpdate(int addr, long val) throws InterruptedException {
+    protected void distantMemoryUpdate(int addr, long val) throws InterruptedException {
+        System.out.println("Received distant memory update for addr " + addr + " and val " + val);
         this.controller.updateBroadcastChanges(addr, val);
     }
 
     protected void globalUpdateFinished() {
+        System.out.println("Releasing global update semaphore for ID " + this.nodeId);
         this.global_update_acks = 0;
         this.globalUpdateSemaphore.release();
     }
 
 
     protected void handshakeFinished() {
-        System.out.println("ALL NODE ARE CONNECTED TO EACH OTHERS.");
+        System.out.println("ALL NODES ARE CONNECTED TO EACH OTHER.");
         // We allow one lock at time
         this.concurrentOperationSemaphore.release(1);
     }
 
-    public void initiateWantLock() throws IOException, InterruptedException {
+    public void initiateWantLock() throws IOException, InterruptedException { //TODO Again, if we have 1 node this doesn't work, it deadlocks.
         this.concurrentOperationSemaphore.acquire();
+
+        System.out.println("Initiating Want LOCK for " + this.nodeId);
 
         Packet packet = new Packet(PacketType.LOCK);
         packet.setData(nodeId + "," + LD);
@@ -119,10 +124,12 @@ public class MutualExclusionHandler {
 
     protected void lockGranted() {
         System.out.println("Node " + nodeId + " has the lock!");
+        System.out.println("Releasing lock semaphore for ID " + this.nodeId);
         this.acquireLockSemaphore.release();
     }
 
     public void initiateUnlock() throws IOException { // rule 6
+        System.out.println("Initiating UNLOCK for ID " + this.nodeId);
         for (Integer IDs : this.delayed.keySet()) {
             if (this.delayed.get(IDs)) {
                 Packet ongoing = new Packet(PacketType.ACK_LOCK);
