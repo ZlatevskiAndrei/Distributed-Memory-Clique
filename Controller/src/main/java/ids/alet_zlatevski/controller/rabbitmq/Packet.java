@@ -14,6 +14,7 @@ public class Packet {
 
         int typeOrdinal = buffer.getInt();
         this.type = PacketType.values()[typeOrdinal];
+        assert (this.type != null);
 
         this.data = new byte[buffer.remaining()];
         buffer.get(this.data);
@@ -23,13 +24,29 @@ public class Packet {
         this.type = type;
     }
 
-    public void setData(String str) {
+    public Packet setData(String str) {
         this.data = str.getBytes(StandardCharsets.UTF_8);
+        return this;
+    }
+
+    public Packet setData(String nodeID, long LC) {
+        return setData(nodeID + "," + LC);
     }
 
     public String getString() {
         return new String(this.data, StandardCharsets.UTF_8);
     }
+
+    public IDAndLC getNodeIdAndLD() {
+        String input = this.getString();
+
+        int commaIndex = input.indexOf(',');
+        String first = input.substring(0, commaIndex).trim();
+        String second = input.substring(commaIndex + 1).trim();
+
+        return new IDAndLC(first, Integer.parseInt(second));
+    }
+
 
     public PacketType getType() {
         return type;
@@ -44,12 +61,8 @@ public class Packet {
         return buffer.array();
     }
 
-    public String[] parseTwoStringData(String input) {
-        int commaIndex = input.indexOf(',');
-        String first = input.substring(0, commaIndex).trim();
-        String second = input.substring(commaIndex + 1).trim();
-        return new String[]{first, second};
-    }
 
+    public record IDAndLC(String ID, int LD) {
+    }
 
 }

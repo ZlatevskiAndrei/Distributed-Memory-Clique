@@ -22,7 +22,6 @@ public class MutualExclusionHandler {
     protected final ArrayList<String> nodeIds;
     protected final String nodeId;
 
-    protected final String broadcastChannel;
     protected final Semaphore concurrentOperationSemaphore;
     protected final Semaphore acquireLockSemaphore;
     protected boolean asking;
@@ -36,7 +35,6 @@ public class MutualExclusionHandler {
         this.brokerHostname = brokerHostname;
         this.nodeIds = new ArrayList<>();
         this.nodeId = nodeId;
-        this.broadcastChannel = getBroadcastChannelForId(this.nodeId);
         this.concurrentOperationSemaphore = new Semaphore(0); // for now we can't execute any operation. Finishing handshake will allow one.
         this.acquireLockSemaphore = new Semaphore(0);
         this.asking = false;
@@ -52,19 +50,16 @@ public class MutualExclusionHandler {
         this.channel = connection.createChannel();
         this.channel.exchangeDeclare(BROADCAST_EXCHANGE, "fanout");
 
-        this.channel.queueDeclare(this.broadcastChannel, false, true, true, null);
-        this.channel.queueBind(this.broadcastChannel, BROADCAST_EXCHANGE, "");
+        this.channel.queueDeclare(this.nodeId, false, true, true, null);
+        this.channel.queueBind(this.nodeId, BROADCAST_EXCHANGE, "");
 
-        this.channel.queueDeclare(nodeId, false, true, true, null);
-
-        this.setupHandshakeCallback();
-        this.setupMutualExclusionCallback();
+        this.setupCallback();
         this.initiateHandshakeProcedure();
     }
 
 
-    protected void setupHandshakeCallback() throws IOException {
-        this.channel.basicConsume(this.broadcastChannel, new BroadcastDispatcher(this));
+    protected void setupCallback() throws IOException {
+        this.channel.basicConsume(this.nodeId, new PacketDispatcher(this));
     }
 
     protected void initiateHandshakeProcedure() throws IOException {
@@ -78,10 +73,6 @@ public class MutualExclusionHandler {
         System.out.println("ALL NODE ARE CONNECTED TO EACH OTHERS.");
         // We allow one lock at time
         this.concurrentOperationSemaphore.release(1);
-    }
-
-    protected void setupMutualExclusionCallback() throws IOException {
-        this.channel.basicConsume(this.nodeId, new LockDispatcher(this));
     }
 
     public void initiateWantLock() throws IOException, InterruptedException {
@@ -121,7 +112,4 @@ public class MutualExclusionHandler {
         return nodeId;
     }
 
-    public static String getBroadcastChannelForId(String nodeId) {
-        return "BROADCAST_" + nodeId;
-    }
 }
