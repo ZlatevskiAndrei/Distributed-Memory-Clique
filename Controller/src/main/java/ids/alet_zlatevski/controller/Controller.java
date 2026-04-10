@@ -62,6 +62,7 @@ public class Controller implements ControllerAccess {
     public void write(int addr, long value) throws InterruptedException, IOException {
         this.mutualExclusionHandler.initiateWantLock();
         this.memory.write(addr, value);
+        // TODO broadcast memory changes. Find a way to ack that every nodes got the changes before unlocking the memory section.
         this.mutualExclusionHandler.initiateUnlock();
     }
 
