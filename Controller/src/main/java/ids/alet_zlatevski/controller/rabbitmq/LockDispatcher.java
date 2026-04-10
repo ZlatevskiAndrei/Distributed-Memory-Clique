@@ -1,4 +1,5 @@
 package ids.alet_zlatevski.controller.rabbitmq;
+
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
@@ -6,14 +7,16 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 import java.io.IOException;
 
+import static ids.alet_zlatevski.env.Constants.NODE_NUMBER;
 
 
-public class LockDispatcher implements Consumer{
+public class LockDispatcher implements Consumer {
     protected MutualExclusionHandler owner;
 
     public LockDispatcher(MutualExclusionHandler owner) {
         this.owner = owner;
     }
+
     @Override
     public void handleConsumeOk(String consumerTag) {
 
@@ -48,17 +51,15 @@ public class LockDispatcher implements Consumer{
         switch (packet.getType()) {
             case LOCK:
                 distantLD = Integer.parseInt(data[1]);
-                if(!owner.asking) { //rule 2
+                if (!owner.asking) { //rule 2
                     owner.LC = Math.max(owner.LC, distantLD) + 1;
                     Packet ongoing = new Packet(PacketType.ACK);
                     ongoing.setData(owner.nodeId + "," + owner.LC);
                     this.owner.channel.basicPublish("", distantNodeId, null, ongoing.toByteArray());
-                }
-                else if(owner.LD > distantLD || owner.LD == distantLD && Integer.parseInt(owner.nodeId) > Integer.parseInt(distantNodeId)) { //rule 3
+                } else if (owner.LD > distantLD || owner.LD == distantLD && Integer.parseInt(owner.nodeId) > Integer.parseInt(distantNodeId)) { //rule 3
                     owner.LC = Math.max(owner.LC, distantLD) + 1;
                     owner.delayed.put(Integer.parseInt(distantNodeId), true);
-                }
-                else { //rule 4
+                } else { //rule 4
                     owner.LC = Math.max(owner.LC, distantLD) + 1;
                     Packet ongoing = new Packet(PacketType.ACK);
                     ongoing.setData(owner.nodeId + "," + owner.LC);
@@ -69,8 +70,10 @@ public class LockDispatcher implements Consumer{
             case ACK: // rule 5
                 distantLD = Integer.parseInt(data[1]);
                 owner.LC = Math.max(owner.LC, distantLD) + 1;
-                owner.nb_perm +=1;
-                if (owner.nb_perm == owner.nodeNumber - 1) owner.lockGranted(); //we expect perms from everyone except us
+                owner.nb_perm += 1;
+                if (owner.nb_perm == NODE_NUMBER - 1) {
+                    owner.lockGranted(); //we expect perms from everyone except us
+                }
                 break;
 
             default:

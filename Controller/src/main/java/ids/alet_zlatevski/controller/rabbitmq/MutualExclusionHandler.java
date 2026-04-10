@@ -15,8 +15,6 @@ import static ids.alet_zlatevski.env.Constants.BROADCAST_EXCHANGE;
 
 public class MutualExclusionHandler {
 
-    protected final int nodeNumber;
-
     protected final String brokerHostname;
     protected final Connection connection;
     protected final Channel channel;
@@ -25,8 +23,8 @@ public class MutualExclusionHandler {
     protected final String nodeId;
 
     protected final String broadcastChannel;
-    protected final Semaphore handshakeSemaphore;
-    protected final Semaphore lockSemaphore;
+    protected final Semaphore concurrentOperationSemaphore;
+    protected final Semaphore acquireLockSemaphore;
     protected boolean asking;
     protected int LC;
     protected final int LD;
@@ -34,14 +32,13 @@ public class MutualExclusionHandler {
     protected final Map<Integer, Boolean> delayed;
 
 
-    public MutualExclusionHandler(final String brokerHostname, int nodeNumber, String nodeId, Semaphore handshakeSemaphore, Semaphore lockSemaphore) throws IOException, TimeoutException, InterruptedException {
+    public MutualExclusionHandler(final String brokerHostname, String nodeId) throws IOException, TimeoutException, InterruptedException {
         this.brokerHostname = brokerHostname;
-        this.nodeNumber = nodeNumber;
         this.nodeIds = new ArrayList<>();
         this.nodeId = nodeId;
         this.broadcastChannel = getBroadcastChannelForId(this.nodeId);
-        this.handshakeSemaphore =  handshakeSemaphore;
-        this.lockSemaphore = lockSemaphore;
+        this.concurrentOperationSemaphore = new Semaphore(0); // for now we can't execute any operation. Finishing handshake will allow one.
+        this.acquireLockSemaphore = new Semaphore(0);
         this.asking = false;
         this.LC = 0;
         this.LD = -1;
@@ -70,28 +67,26 @@ public class MutualExclusionHandler {
         this.channel.basicConsume(this.broadcastChannel, new BroadcastDispatcher(this));
     }
 
-    protected void initiateHandshakeProcedure() throws IOException, InterruptedException {
+    protected void initiateHandshakeProcedure() throws IOException {
         Packet packet = new Packet(PacketType.HANDSHAKE);
         packet.setData(nodeId);
 
         this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
-        this.handshakeSemaphore.acquire();
     }
 
     protected void handshakeFinished() {
-        System.out.println("ALL NODE ARE CONNECTED TO EACH OTHERS");
-        this.handshakeSemaphore.release();
+        System.out.println("ALL NODE ARE CONNECTED TO EACH OTHERS.");
+        // We allow one lock at time
+        this.concurrentOperationSemaphore.release(1);
     }
 
     protected void setupMutualExclusionCallback() throws IOException {
-        this.channel.basicConsume(this.nodeId,  new LockDispatcher(this));
+        this.channel.basicConsume(this.nodeId, new LockDispatcher(this));
     }
 
     public void initiateWantLock() throws IOException, InterruptedException {
-        // TODO I see here an issue if we receive many initiateWanLock() requests that is possible for now.
-        //  We may send 2 time the LOCK packet which is not supported as
-        //  I know inside the mutual exclusion protocol.
-        //  So we may add a "synchronized" into the method type.
+        this.concurrentOperationSemaphore.acquire();
+
         Packet packet = new Packet(PacketType.LOCK);
         packet.setData(nodeId + "," + LD);
 
@@ -100,17 +95,17 @@ public class MutualExclusionHandler {
         this.asking = true;
         this.nb_perm = 0;
 
-        this.lockSemaphore.acquire();
+        this.acquireLockSemaphore.acquire();
     }
 
     protected void lockGranted() {
         System.out.println("Node " + nodeId + " has the lock!");
-        this.lockSemaphore.release();
+        this.acquireLockSemaphore.release();
     }
 
     public void initiateUnlock() throws IOException { // rule 6
-        for(Integer IDs: this.delayed.keySet()) {
-            if(this.delayed.get(IDs)) {
+        for (Integer IDs : this.delayed.keySet()) {
+            if (this.delayed.get(IDs)) {
                 Packet ongoing = new Packet(PacketType.ACK);
                 ongoing.setData(this.nodeId + "," + this.LC);
                 this.channel.basicPublish("", String.valueOf(IDs), null, ongoing.toByteArray());
@@ -119,6 +114,7 @@ public class MutualExclusionHandler {
         }
         this.asking = false;
         this.nb_perm = 0;
+        this.concurrentOperationSemaphore.release();
     }
 
     public String getNodeId() {
