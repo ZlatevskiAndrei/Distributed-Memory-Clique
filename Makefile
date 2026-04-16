@@ -1,5 +1,5 @@
 client:
-	./gradlew :Client:run --console=plain
+	./gradlew :Client:run --console=plain --configuration-cache
 
 controller:
-	./gradlew :Controller:run --console=plain
+	./gradlew :Controller:run --console=plain --configuration-cache

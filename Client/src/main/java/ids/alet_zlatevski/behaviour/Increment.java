@@ -13,7 +13,7 @@ public class Increment {
             long next = controller.increment(addr);
             System.out.println("Iteration " + i + ": value is " + next);
         }
+        Thread.sleep(10000);
         System.out.println("Stress test finished. Final local view of value: " + controller.read(addr));
-        Thread.sleep(5000);
     }
 }
