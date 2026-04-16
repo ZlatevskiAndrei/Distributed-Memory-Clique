@@ -125,7 +125,7 @@ public class PacketDispatcher implements Consumer {
 
             case ACK_GLOBAL_UPDATE -> {
                 owner.global_update_acks += 1;
-                if(owner.global_update_acks == NODE_NUMBER - 1) {
+                if (owner.global_update_acks == NODE_NUMBER - 1) {
                     owner.globalUpdateFinished();
                 }
             }

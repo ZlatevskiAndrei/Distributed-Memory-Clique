@@ -13,6 +13,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 
 import static ids.alet_zlatevski.env.Constants.BROADCAST_EXCHANGE;
+import static ids.alet_zlatevski.env.Constants.NODE_NUMBER;
 
 public class MutualExclusionHandler {
 
@@ -61,8 +62,7 @@ public class MutualExclusionHandler {
         this.channel.queueBind(this.nodeId, BROADCAST_EXCHANGE, "");
 
         this.setupCallback();
-        this.initiateHandshakeProcedure(); //TODO We have to decide what to do in case of only 1 node, we may have local clients that could want to work
-        // TODO What we could do is set up a timer, because the node expects a HANDSHAKE return, if no one comes until X time, we just let the node work by himself
+        this.initiateHandshakeProcedure();
     }
 
 
@@ -71,6 +71,10 @@ public class MutualExclusionHandler {
     }
 
     protected void initiateHandshakeProcedure() throws IOException {
+        if (NODE_NUMBER <= 1) {
+            this.handshakeFinished();
+            return;
+        }
         Packet packet = new Packet(PacketType.HANDSHAKE);
         packet.setData(nodeId);
         System.out.println("Initiating handshake for ID " + this.nodeId);
@@ -78,6 +82,9 @@ public class MutualExclusionHandler {
     }
 
     public void initiateGlobalUpdateProcedure(int addr, long val) throws InterruptedException, IOException {
+        if (NODE_NUMBER <= 1) {
+            this.globalUpdateFinished();
+        }
         Packet packet = new Packet(PacketType.GLOBAL_UPDATE);
         String data = this.nodeId + "," + addr + "," + val;
         packet.setData(data);
@@ -111,14 +118,17 @@ public class MutualExclusionHandler {
         System.out.println("Initiating Want LOCK for " + this.nodeId);
 
         Packet packet = new Packet(PacketType.LOCK);
-        packet.setData(nodeId + "," + LD);
+        packet.setData(nodeId, LD);
 
         this.asking = true;
         this.nb_perm = 0;
 
         this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
 
-
+        if (NODE_NUMBER <= 1) {
+            // We cancel the acquire following
+            this.acquireLockSemaphore.release();
+        }
         this.acquireLockSemaphore.acquire();
     }
 
@@ -133,7 +143,7 @@ public class MutualExclusionHandler {
         for (Integer IDs : this.delayed.keySet()) {
             if (this.delayed.get(IDs)) {
                 Packet ongoing = new Packet(PacketType.ACK_LOCK);
-                ongoing.setData(this.nodeId + "," + this.LC);
+                ongoing.setData(this.nodeId, this.LC);
                 this.channel.basicPublish("", String.valueOf(IDs), null, ongoing.toByteArray());
                 this.delayed.replace(IDs, false);
             }
