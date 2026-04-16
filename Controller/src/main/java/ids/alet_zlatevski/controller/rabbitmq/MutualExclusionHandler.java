@@ -84,6 +84,7 @@ public class MutualExclusionHandler {
     public void initiateGlobalUpdateProcedure(int addr, long val) throws InterruptedException, IOException {
         if (NODE_NUMBER <= 1) {
             this.globalUpdateFinished();
+            return;
         }
         Packet packet = new Packet(PacketType.GLOBAL_UPDATE);
         String data = this.nodeId + "," + addr + "," + val;
@@ -117,6 +118,11 @@ public class MutualExclusionHandler {
 
         System.out.println("Initiating Want LOCK for " + this.nodeId);
 
+        if (NODE_NUMBER <= 1 || this.nodeIds.isEmpty()) {
+            this.lockGranted();
+            return;
+        }
+
         this.LC += 1;
         this.LD = this.LC;
         this.asking = true;
@@ -126,10 +132,6 @@ public class MutualExclusionHandler {
         packet.setData(nodeId, LD);
 
         this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
-
-        if (NODE_NUMBER <= 1 || this.nodeIds.isEmpty()) {
-            this.acquireLockSemaphore.release();
-        }
         this.acquireLockSemaphore.acquire();
     }
 

@@ -1,5 +1,3 @@
-
-
 client:
 	./gradlew :Client:run --console=plain
 

@@ -13,7 +13,6 @@ public class Increment {
             long next = controller.increment(addr);
             System.out.println("Iteration " + i + ": value is " + next);
         }
-
         System.out.println("Stress test finished. Final local view of value: " + controller.read(addr));
     }
 }
