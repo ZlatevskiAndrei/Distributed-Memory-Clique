@@ -22,6 +22,7 @@ public class Packet {
 
     public Packet(PacketType type) {
         this.type = type;
+        this.data = new byte[0];
     }
 
     public Packet setData(String str) {
@@ -70,6 +71,7 @@ public class Packet {
 
     public record IDAndLC(String ID, int LD) {
     }
+
     public record ID_ADDR_VAL(String ID, int addr, long val) {
     }
 }

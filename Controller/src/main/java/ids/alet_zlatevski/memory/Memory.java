@@ -64,7 +64,7 @@ public class Memory {
             this.setAddressStatus(addr, AddressStatus.BUSY);
             this.setValue(addr, value);
 
-            Thread.sleep(400); // for simulation purposes, if multiple local clients want to access this addr
+            Thread.sleep(2000); // for simulation purposes, if multiple local clients want to access this addr
 
             this.setAddressStatus(addr, AddressStatus.FREE);
             this.notifyAll(); // notify threads waiting on memory

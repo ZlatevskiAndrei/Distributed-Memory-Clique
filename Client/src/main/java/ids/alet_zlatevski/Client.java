@@ -11,20 +11,23 @@ public class Client {
 
     public static void main(String[] args) { //just a stupid test class
         try {
+            Scanner scanner = new Scanner(System.in);
+
+            System.out.print("Enter Controller RMI Port: ");
+            int port = Integer.parseInt(scanner.nextLine());
+
             String host = "localhost";
-            int port = 1099;
-
             Registry registry = LocateRegistry.getRegistry(host, port);
-            ControllerAccess controller =
-                    (ControllerAccess) registry.lookup("API");
+            ControllerAccess controller = (ControllerAccess) registry.lookup("API");
 
+            System.out.println("Select client mode:");
+            System.out.println("1 - Manual");
+            System.out.print("> ");
+            String mode = scanner.nextLine();
 
-            switch (args[2]) {
+            switch (mode) {
                 case "1" -> {
                     act_manual(controller);
-                }
-                case "2" -> {
-                    // TODO add differents type of clients
                 }
                 default -> {
                     System.out.println("This mode doesn't exist.");

@@ -47,6 +47,7 @@ public class Controller implements ControllerAccess {
     private void setupRegistry() {
         try {
             this.rmiHandler = new RMIHandler(this);
+            System.out.println("RMI registry started on port: " + this.rmiHandler.getPort());
         } catch (Exception e) {
             System.err.println("err" + e);
             e.printStackTrace();
