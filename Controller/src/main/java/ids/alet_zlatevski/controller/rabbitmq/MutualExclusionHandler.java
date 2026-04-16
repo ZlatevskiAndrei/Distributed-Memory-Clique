@@ -155,9 +155,4 @@ public class MutualExclusionHandler {
         this.nb_perm = 0;
         this.concurrentOperationSemaphore.release();
     }
-
-    public String getNodeId() {
-        return nodeId;
-    }
-
 }

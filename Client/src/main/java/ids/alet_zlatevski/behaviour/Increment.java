@@ -14,5 +14,6 @@ public class Increment {
             System.out.println("Iteration " + i + ": value is " + next);
         }
         System.out.println("Stress test finished. Final local view of value: " + controller.read(addr));
+        Thread.sleep(5000);
     }
 }

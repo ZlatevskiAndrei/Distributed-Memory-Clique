@@ -36,8 +36,8 @@ public class Controller implements ControllerAccess {
             this.mutualExclusionHandler = new MutualExclusionHandler(this.brokerHostname, nodeId, this);
         } catch (IOException | TimeoutException e) {
             e.printStackTrace();
-            System.out.println("IO Exception at " + this.brokerHostname);
-            System.out.println("Exiting!");
+            System.err.println("IO Exception at " + this.brokerHostname);
+            System.err.println("Exiting!");
             System.exit(130);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -49,8 +49,10 @@ public class Controller implements ControllerAccess {
             this.rmiHandler = new RMIHandler(this);
             System.out.println("RMI registry started on port: " + this.rmiHandler.getPort());
         } catch (Exception e) {
-            System.err.println("err" + e);
             e.printStackTrace();
+            System.err.println("Exception during Registry setup!");
+            System.err.println("Exiting!");
+            System.exit(130);
         }
     }
 

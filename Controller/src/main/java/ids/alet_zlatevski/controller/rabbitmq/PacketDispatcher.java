@@ -57,13 +57,13 @@ public class PacketDispatcher implements Consumer {
                 String newNodeId = packet.getString();
 
                 // we don't send ack to ourselves or if the node was already added.
-                if (Objects.equals(this.owner.getNodeId(), newNodeId) || this.owner.nodeIds.contains(newNodeId)) {
+                if (Objects.equals(this.owner.nodeId, newNodeId) || this.owner.nodeIds.contains(newNodeId)) {
                     return;
                 }
 
                 // we send on the other broadcast channel our own id
                 Packet ownIdPacket = new Packet(PacketType.HANDSHAKE);
-                ownIdPacket.setData(this.owner.getNodeId());
+                ownIdPacket.setData(this.owner.nodeId);
                 this.owner.channel.basicPublish("", newNodeId, null, ownIdPacket.toByteArray());
 
                 this.owner.nodeIds.add(newNodeId);
@@ -89,8 +89,8 @@ public class PacketDispatcher implements Consumer {
                     this.owner.channel.basicPublish("", distant.ID(), null, ongoing.toByteArray());
                 } else if (owner.LD < distant.LD() || (owner.LD == distant.LD() && Integer.parseInt(owner.nodeId) < Integer.parseInt(distant.ID()))) {
                     // Rule 3: Current node has priority (smaller timestamp or smaller ID)
-                    // Delay the reply
-                    owner.delayed.put(Integer.parseInt(distant.ID()), true);
+                    owner.delayed.put(Integer.parseInt(distant.ID()), true); // Delay the reply
+
                 } else {
                     // Rule 4: Incoming node has priority
                     Packet ongoing = new Packet(PacketType.ACK_LOCK)
@@ -119,11 +119,10 @@ public class PacketDispatcher implements Consumer {
                 if (Objects.equals(distant.ID(), owner.nodeId)) {
                     return;
                 }
-                
                 try {
                     owner.distantMemoryUpdate(distant.addr(), distant.val());
                     Packet ackPacket = new Packet(PacketType.ACK_GLOBAL_UPDATE);
-                    ackPacket.setData(this.owner.getNodeId()); // Add our ID to the ACK
+                    ackPacket.setData(this.owner.nodeId); // Add our ID to the ACK
                     this.owner.channel.basicPublish("", distant.ID(), null, ackPacket.toByteArray());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
@@ -141,7 +140,10 @@ public class PacketDispatcher implements Consumer {
                 }
             }
 
-            default -> System.out.println("ayy");
+            default -> {
+                System.err.println("Unknown Protocol code! Exiting...");
+                System.exit(130);
+            }
         }
     }
 }
