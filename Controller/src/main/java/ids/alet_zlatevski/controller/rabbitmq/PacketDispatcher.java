@@ -77,56 +77,67 @@ public class PacketDispatcher implements Consumer {
 
             case LOCK -> {
                 Packet.IDAndLC distant = packet.getNodeIdAndLD();
-                if (!owner.asking) { // rule 2
-
-                    owner.LC = Math.max(owner.LC, distant.LD()) + 1;
-
+                if (Objects.equals(distant.ID(), owner.nodeId)) {
+                    return; // Ignore our own request
+                }
+                
+                owner.LC = Math.max(owner.LC, distant.LD()) + 1; // Update logical clock
+                
+                if (!owner.asking) { // Rule 2
                     Packet ongoing = new Packet(PacketType.ACK_LOCK)
                             .setData(owner.nodeId, owner.LC);
-
                     this.owner.channel.basicPublish("", distant.ID(), null, ongoing.toByteArray());
-                } else if (owner.LD > distant.LD() || owner.LD == distant.LD()
-                        && Integer.parseInt(owner.nodeId) > Integer.parseInt(distant.ID())) { // rule 3
-
-                    owner.LC = Math.max(owner.LC, distant.LD()) + 1;
-
+                } else if (owner.LD < distant.LD() || (owner.LD == distant.LD() && Integer.parseInt(owner.nodeId) < Integer.parseInt(distant.ID()))) {
+                    // Rule 3: Current node has priority (smaller timestamp or smaller ID)
+                    // Delay the reply
                     owner.delayed.put(Integer.parseInt(distant.ID()), true);
-                } else { // rule 4
-                    owner.LC = Math.max(owner.LC, distant.LD()) + 1;
-
+                } else {
+                    // Rule 4: Incoming node has priority
                     Packet ongoing = new Packet(PacketType.ACK_LOCK)
                             .setData(owner.nodeId, owner.LC);
-
                     this.owner.channel.basicPublish("", distant.ID(), null, ongoing.toByteArray());
                 }
             }
 
-            case ACK_LOCK -> { // rule 5
+            case ACK_LOCK -> { // Rule 5
                 Packet.IDAndLC distant = packet.getNodeIdAndLD();
-
+                if (Objects.equals(distant.ID(), owner.nodeId)) {
+                    return; // Ignore our own ACK
+                }
+                
                 owner.LC = Math.max(owner.LC, distant.LD()) + 1;
                 owner.nb_perm += 1;
 
-                if (owner.nb_perm == NODE_NUMBER - 1) {
-                    owner.lockGranted(); // we expect perms from everyone except us
+                if (owner.nb_perm >= owner.nodeIds.size()) {
+                    owner.lockGranted();
                 }
             }
 
             case GLOBAL_UPDATE -> {
                 Packet.ID_ADDR_VAL distant = packet.getIdAddrVal();
+                // We should only process updates from other nodes
+                if (Objects.equals(distant.ID(), owner.nodeId)) {
+                    return;
+                }
+                
                 try {
                     owner.distantMemoryUpdate(distant.addr(), distant.val());
-                    Packet newPacket = new Packet(PacketType.ACK_GLOBAL_UPDATE);
-                    this.owner.channel.basicPublish("", distant.ID(), null, newPacket.toByteArray());
+                    Packet ackPacket = new Packet(PacketType.ACK_GLOBAL_UPDATE);
+                    ackPacket.setData(this.owner.getNodeId()); // Add our ID to the ACK
+                    this.owner.channel.basicPublish("", distant.ID(), null, ackPacket.toByteArray());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
 
             case ACK_GLOBAL_UPDATE -> {
-                owner.global_update_acks += 1;
-                if (owner.global_update_acks == NODE_NUMBER - 1) {
-                    owner.globalUpdateFinished();
+                String senderId = packet.getString();
+                // Only count ACKs from other nodes
+                if (!Objects.equals(senderId, owner.nodeId)) {
+                    owner.global_update_acks += 1;
+                    if (owner.global_update_acks >= owner.nodeIds.size()) {
+                        owner.globalUpdateFinished();
+                    }
                 }
             }
 

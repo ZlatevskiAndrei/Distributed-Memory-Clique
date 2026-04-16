@@ -3,6 +3,8 @@ package ids.alet_zlatevski.memory;
 
 import java.util.*;
 
+import static ids.alet_zlatevski.env.Constants.RANDOMIZED_WRITE_TIME;
+
 public class Memory {
 
     protected final int size;
@@ -62,9 +64,12 @@ public class Memory {
             }
 
             this.setAddressStatus(addr, AddressStatus.BUSY);
-            this.setValue(addr, value);
 
-            Thread.sleep(2000); // for simulation purposes, if multiple local clients want to access this addr
+            // For simulation purpose the write to memory is delayed with a random time to show the critical section.
+            int random_wait = new Random().nextInt(RANDOMIZED_WRITE_TIME) + RANDOMIZED_WRITE_TIME;
+            Thread.sleep(random_wait);
+
+            this.setValue(addr, value);
 
             this.setAddressStatus(addr, AddressStatus.FREE);
             this.notifyAll(); // notify threads waiting on memory

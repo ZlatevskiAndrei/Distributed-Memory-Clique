@@ -29,7 +29,7 @@ public class MutualExclusionHandler {
     protected final Semaphore globalUpdateSemaphore;
     protected boolean asking;
     protected int LC;
-    protected final int LD;
+    protected int LD;
     protected int nb_perm;
     protected int global_update_acks;
     protected final Map<Integer, Boolean> delayed;
@@ -112,21 +112,22 @@ public class MutualExclusionHandler {
         this.concurrentOperationSemaphore.release(1);
     }
 
-    public void initiateWantLock() throws IOException, InterruptedException { //TODO Again, if we have 1 node this doesn't work, it deadlocks.
+    public void initiateWantLock() throws IOException, InterruptedException {
         this.concurrentOperationSemaphore.acquire();
 
         System.out.println("Initiating Want LOCK for " + this.nodeId);
 
-        Packet packet = new Packet(PacketType.LOCK);
-        packet.setData(nodeId, LD);
-
+        this.LC += 1;
+        this.LD = this.LC;
         this.asking = true;
         this.nb_perm = 0;
 
+        Packet packet = new Packet(PacketType.LOCK);
+        packet.setData(nodeId, LD);
+
         this.channel.basicPublish(BROADCAST_EXCHANGE, "", null, packet.toByteArray());
 
-        if (NODE_NUMBER <= 1) {
-            // We cancel the acquire following
+        if (NODE_NUMBER <= 1 || this.nodeIds.isEmpty()) {
             this.acquireLockSemaphore.release();
         }
         this.acquireLockSemaphore.acquire();

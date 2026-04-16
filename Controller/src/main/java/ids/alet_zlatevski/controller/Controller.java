@@ -76,6 +76,16 @@ public class Controller implements ControllerAccess {
     }
 
     @Override
+    public long increment(int addr) throws InterruptedException, IOException {
+        this.mutualExclusionHandler.initiateWantLock();
+        long value = this.memory.read(addr) + 1;
+        this.memory.write(addr, value);
+        this.mutualExclusionHandler.initiateGlobalUpdateProcedure(addr, value);
+        this.mutualExclusionHandler.initiateUnlock();
+        return value;
+    }
+
+    @Override
     public int size() throws RemoteException {
         return MEMORY_SIZE;
     }
