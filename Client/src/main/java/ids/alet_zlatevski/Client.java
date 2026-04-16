@@ -10,7 +10,7 @@ import static ids.alet_zlatevski.behaviour.Increment.act_stress;
 
 public class Client {
 
-    public static void main() {
+    public static void main(String args[]) {
         try {
             Scanner scanner = new Scanner(System.in);
             
