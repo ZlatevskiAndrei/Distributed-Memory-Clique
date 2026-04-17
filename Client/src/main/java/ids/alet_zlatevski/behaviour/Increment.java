@@ -5,7 +5,7 @@ import ids.alet_zlatevski.ControllerAccess;
 import java.io.IOException;
 
 public class Increment {
-    public static void act_stress(ControllerAccess controller, int iterations) throws IOException, InterruptedException {
+    public static void act_increment(ControllerAccess controller, int iterations) throws IOException, InterruptedException {
         int addr = 0;
         System.out.println("Starting stress test: " + iterations + " increments on address " + addr);
 
