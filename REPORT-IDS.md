@@ -30,7 +30,7 @@ in the same node and using Java RMI:
 
 <center>
 
-![File : RMI interface BETTER.drawio](/home/arno/cours/s2/ids/Distributed-Memory-IDS/RMI Interface.drawio.png)
+![](/home/arno/cours/s2/ids/Distributed-Memory-IDS/RMI Interface.drawio.png)
 
 </center>
 
@@ -42,7 +42,7 @@ memory model being as simplistic as possible: An array of long values, with the 
 We now proceed to the big picture, the general architectural idea (for instance if 3 nodes are interacting):
 NOTE: Zooming is encouraged if not visible.
 
-![File : DSM-FINALFINAL.drawio](/home/arno/cours/s2/ids/Distributed-Memory-IDS/DSM-FINALFINAL.drawio.png)
+![](/home/arno/cours/s2/ids/Distributed-Memory-IDS/DSM-FINALFINAL.drawio.png)
 
 We first explain the design choices within a node. In each node, there is a controller that deals with remote call
 procedures from local clients, just as well the communication between the nodes via the RabbitMQ broker. The controller
